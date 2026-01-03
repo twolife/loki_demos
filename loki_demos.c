@@ -31,9 +31,9 @@
 #include <time.h>
 #include <sys/wait.h>
 
-#include "SDL.h"
-#include "SDL_image.h"
-#include "SDL_mixer.h"
+#include <SDL3/SDL.h>
+#include <SDL3_image/SDL_image.h>
+#include <SDL3_mixer/SDL_mixer.h>
 #include "loki_launch.h"
 
 
@@ -76,12 +76,14 @@ enum {
 
 /* The main screen surface */
 static SDL_Surface *screen;
+static SDL_Window *window;
 static int num_dirty;
 static SDL_Rect dirty_areas[128];
-static int movie_depth;
 
 /* The button click sound */
-static Mix_Chunk *click;
+static MIX_Audio *click;
+static MIX_Mixer *mixer;
+static MIX_Track *track;
 
 /* The pre-defined portions of the interface */
 static struct button {
@@ -242,20 +244,20 @@ static void load_sounds(void)
     char path[128];
 
     get_menu_path("click.wav", path, sizeof(path));
-    click = Mix_LoadWAV(path);
+    click = MIX_LoadAudio(NULL, path, false);
 }
 
 static void play_click(void)
 {
-    if ( click ) {
-        Mix_PlayChannel(-1, click, 0);
+    if ( click && MIX_SetTrackAudio( track, click ) ) {
+        MIX_PlayTrack(track, 0);
     }
 }
 
 static void free_sounds(void)
 {
     if ( click ) {
-        Mix_FreeChunk(click);
+        MIX_DestroyAudio(click);
         click = NULL;
     }
 }
@@ -267,7 +269,7 @@ static void add_dirty_rect(const SDL_Rect *area)
 
 static void show_dirty_rects(void)
 {
-    SDL_UpdateRects(screen, num_dirty, dirty_areas);
+    SDL_UpdateWindowSurfaceRects(window, dirty_areas, num_dirty);
     num_dirty = 0;
 }
 
@@ -314,7 +316,7 @@ static void free_button(struct button *button)
 
     for ( i=0; i<NUM_STATES; ++i ) {
         if ( button->frames[i] ) {
-            SDL_FreeSurface(button->frames[i]);
+            SDL_DestroySurface(button->frames[i]);
         }
     }
 }
@@ -465,7 +467,7 @@ static void free_images(void)
         for ( state=0; state<NUM_STATES; ++state ) {
             frame = images[i].frames[state];
             if ( frame ) {
-                SDL_FreeSurface(frame);
+                SDL_DestroySurface(frame);
             }
         }
     }
@@ -761,31 +763,28 @@ static int init_ui(int use_sound)
     char last_demo_buf[128];
     char *last_demo;
 
-    /* Initialize SDL */
-    if ( SDL_Init(SDL_INIT_AUDIO|SDL_INIT_VIDEO) < 0 ) {
-        fprintf(stderr, "Couldn't init SDL: %s\n", SDL_GetError());
-        return(-1);
-    }
+    if ( ! window ) {
+        /* Initialize SDL */
+        if ( SDL_Init(SDL_INIT_AUDIO|SDL_INIT_VIDEO) != true ) {
+            fprintf(stderr, "Couldn't init SDL: %s\n", SDL_GetError());
+            return(-1);
+        }
 
-    /* Figure out what native depth the screen is running at */
-    movie_depth = SDL_GetVideoInfo()->vfmt->BitsPerPixel;
-    if ( movie_depth < 15 ) {
-        movie_depth = 16;
+        window = SDL_CreateWindow("Loki Demo Launcher", 640, 480, 0);
+        if ( ! window ) {
+            fprintf(stderr, "Couldn't create SDL_Window: %s\n", SDL_GetError());
+            SDL_Quit();
+            return(-1);
+        }
+        SDL_SetWindowIcon(window, SDL_LoadBMP("icon.bmp"));
+        screen = SDL_GetWindowSurface(window);
     }
-
-    /* Set the video mode and set the icon and title bar */
-    screen = SDL_SetVideoMode(640, 480, 32, SDL_SWSURFACE);
-    if ( ! screen ) {
-        fprintf(stderr, "Couldn't set video mode: %s\n", SDL_GetError());
-        SDL_Quit();
-        return(-1);
-    }
-    SDL_WM_SetIcon(SDL_LoadBMP("icon.bmp"), NULL);
-    SDL_WM_SetCaption("Loki Demo Launcher", "loki_demos");
 
     /* Open the audio */
     if ( use_sound ) {
-        Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 512);
+        MIX_Init();
+        mixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL);
+        track = MIX_CreateTrack(mixer);
     }
 
     /* Load everything */
@@ -826,11 +825,8 @@ static void quit_ui(void)
     free_sounds();
 
     /* Free system resources */
-    Mix_CloseAudio();
-
-#if 0 /* We're leaving the loading plaque up, so don't quit the video */
-    SDL_Quit();
-#endif
+    MIX_DestroyTrack(track);
+    MIX_DestroyMixer(mixer);
 }
 
 static int in_button(struct button *button, int x, int y)
@@ -889,7 +885,7 @@ static void show_plaque(const char *image)
     dst.y = 0;
     dst.w = screen->w;
     dst.h = screen->h;
-    SDL_FillRect(screen, &dst, 0);
+    SDL_FillSurfaceRect(screen, &dst, 0);
 
     /* Show the loading plaque */
     get_menu_path(image, path, sizeof(path));
@@ -900,9 +896,9 @@ static void show_plaque(const char *image)
         dst.w = screen->w;
         dst.h = screen->h;
         SDL_BlitSurface(plaque, NULL, screen, &dst);
-        SDL_FreeSurface(plaque);
+        SDL_DestroySurface(plaque);
     }
-    SDL_Flip(screen);
+    SDL_UpdateWindowSurface(window);
 }
 
 /* A version of system() that keeps the UI active */
@@ -943,7 +939,7 @@ static char *run_ui(int *done)
     command = NULL;
     while ( SDL_PollEvent(&event) ) {
         switch (event.type) {
-            case SDL_MOUSEMOTION:
+            case SDL_EVENT_MOUSE_MOTION:
                 /* Find out what portion of the UI is being hilited */
                 if ( in_demo_panel(event.motion.x, event.motion.y) ) {
                     for ( list=demos; list; list=list->next ) {
@@ -964,7 +960,7 @@ static char *run_ui(int *done)
                     }
                 }
                 break;
-            case SDL_MOUSEBUTTONDOWN:
+            case SDL_EVENT_MOUSE_BUTTON_DOWN:
                 /* Find out what portion of the UI is being selected */
                 for ( i=0; i<DEMOS; ++i ) {
                     if ( in_button(&images[i],
@@ -982,7 +978,7 @@ static char *run_ui(int *done)
                     }
                 }
                 break;
-            case SDL_MOUSEBUTTONUP:
+            case SDL_EVENT_MOUSE_BUTTON_UP:
                 /* Find out what portion of the UI is being activated */
                 if ( hilited_button && (hilited_button->state == CLICKED) ) {
                     for ( i=0; i<DEMOS; ++i ) {
@@ -1037,12 +1033,12 @@ static char *run_ui(int *done)
                     }
                 }
                 break;
-            case SDL_KEYUP:
-                if ( event.key.keysym.sym == SDLK_ESCAPE ) {
+            case SDL_EVENT_KEY_UP:
+                if ( event.key.key == SDLK_ESCAPE ) {
                     *done = 1;
                 }
                 break;
-            case SDL_QUIT:
+            case SDL_EVENT_QUIT:
                 *done = 1;
                 break;
         }
@@ -1141,7 +1137,7 @@ int main(int argc, char *argv[])
             args[i+3] = argv[i];
         }
         args[i+3] = NULL;
-        execvp(args[0], args);
+        execvp(args[0], (char * const*) args);
         fprintf(stderr, "Couldn't exec %s, restarting\n", args[0]);
         execvp(argv[0], argv);
     }

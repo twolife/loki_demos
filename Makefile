@@ -3,9 +3,8 @@ TARGET  := loki_demos
 VERSION := \"1.0e\"
 OBJS	:= loki_demos.o loki_launch.o
 CFLAGS  := -g -Wall -DVERSION=$(VERSION)
-CFLAGS  += $(shell sdl-config --cflags)
-LFLAGS  := -lSDL_image -lpng -lz -ljpeg -lSDL_mixer
-LFLAGS  += $(shell sdl-config --static-libs)
+CFLAGS  += $(shell pkg-config sdl3 sdl3-image sdl3-mixer --cflags)
+LFLAGS  := $(shell pkg-config sdl3 sdl3-image sdl3-mixer --libs)
 ARCH    := $(shell sh print_arch)
 ifeq ($(ARCH), alpha)
 CFLAGS  += -mcpu=ev4 -Wa,-mall
@@ -16,7 +15,7 @@ INSTALL := $(CDBASE)/bin/$(ARCH)/$(TARGET)
 DEMO_CONFIG := demo_config
 
 $(TARGET): $(OBJS)
-	$(CC) -o $@ $^ $(LFLAGS) -static
+	$(CC) -o $@ $^ $(LFLAGS)
 
 install: $(TARGET)
 	@echo "$(TARGET) -> $(INSTALL)"
