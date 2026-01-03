@@ -16,6 +16,9 @@ DetectLIBC()
 	              echo "glibc-2.0"
 	              status=0
 	      fi        
+      elif [ -f `echo /lib/i386-linux-gnu/libc.so.6* | tail -1` ]; then
+	              echo "glibc-2.1"
+	              status=0
       elif [ -f /lib/libc.so.5 ]; then
 	      echo "libc5"
 	      status=0
