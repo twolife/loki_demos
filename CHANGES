@@ -1,3 +1,8 @@
+1.0f:
+Sébastien Noel - Sat Jan  3 16:17:34 CET 2026
+ * loki_demos: port to SDL3
+ * demo_config: add a GTK4 port
+
 1.0e:
 Sam Lantinga - Tue Jun  5 12:48:09 PDT 2001
  * The website button now takes you to the web store.

@@ -1,6 +1,6 @@
 
 TARGET  := loki_demos
-VERSION := \"1.0e\"
+VERSION := \"1.0f\"
 OBJS	:= loki_demos.o loki_launch.o
 CFLAGS  := -g -Wall -DVERSION=$(VERSION)
 CFLAGS  += $(shell pkg-config sdl3 sdl3-image sdl3-mixer --cflags)
