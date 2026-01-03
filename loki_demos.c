@@ -35,8 +35,7 @@
 #include "SDL.h"
 #include "SDL_image.h"
 #include "SDL_mixer.h"
-#include "loki_launchurl.h"
-#include "play_movie.h"
+#include "loki_launch.h"
 
 
 #define PRODUCT     "Loki_Demos"
@@ -999,10 +998,7 @@ static char *run_ui(int *done)
                                     *done = 2;
                                     break;
                                 case TRAILER:
-                                    play_movie(current_demo->trailer,
-                                               movie_depth);
-                                    screen = SDL_SetVideoMode(640, 480, 32, 0);
-                                    draw_ui();
+                                    play_movie(current_demo->trailer);
                                     break;
                                 case PLAY:
                                     command = strdup(current_demo->name);

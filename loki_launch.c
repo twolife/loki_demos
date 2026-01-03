@@ -23,7 +23,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "loki_launchurl.h"
+#include "loki_launch.h"
 
 /* Current running environment */
 typedef enum {
@@ -148,4 +148,38 @@ int loki_launchURL(const char *url)
         status = -1;
     }
     return status;
+}
+
+void play_movie(const char *movie)
+{
+    /* List of programs and command strings to try */
+    struct {
+        char *program;
+        char *command;
+    } player_list[] = {
+        { "mpv",
+          "mpv -fs %s" },
+        { "mplayer",
+          "mplayer -fs %s" },
+        { "ffplay",
+          "ffplay -fs %s" },
+        { "xdg-open",
+          "xdg-open %s" }
+    };
+    char *command;
+
+    for (int i=0; i<(sizeof player_list)/(sizeof player_list[0]); ++i ) {
+        if ( valid_program(player_list[i].program) ) {
+            command = player_list[i].command;
+            break;
+        }
+    }
+
+    char *command_string;
+    size_t len = strlen(command) + strlen(movie);
+
+    command_string = malloc(len);
+    snprintf(command_string, len, command, movie);
+    system(command_string);
+    free(command_string);
 }
