@@ -24,12 +24,6 @@
 
 #include "loki_launch.h"
 
-/* Current running environment */
-typedef enum {
-    RUNNING_X11,
-    RUNNING_TEXT
-} environment;
-
 /* This function verifies that a program is in the path and executable */
 static int valid_program(const char *program)
 {
@@ -88,53 +82,27 @@ int loki_launchURL(const char *url)
 {
     /* List of programs and command strings to try */
     struct {
-        environment running;
         char *program;
         char *command;
     } browser_list[] = {
-        { RUNNING_X11,
-          "gnome-moz-remote",
-          "gnome-moz-remote --newwin %s" },
-        { RUNNING_X11,
-          "netscape",
-          "netscape -remote 'openURL(%s,new-window)' || netscape %s" },
-        { RUNNING_X11,
-          "mozilla",
-          "mozilla %s &" },
-        { RUNNING_X11,
-          "opera",
-          "opera -page='%s' &" },
-        { RUNNING_X11,
-          "links",
+        { "xdg-open",
+          "xdg-open %s" },
+        { "firefox",
+          "firefox %s &" },
+        { "links",
           "xterm -T \"Web Browser\" -e links %s &" },
-        { RUNNING_X11,
-          "lynx",
-          "xterm -T \"Web Browser\" -e lynx %s &" },
-        { RUNNING_TEXT,
-          "links",
-          "links %s" },
-        { RUNNING_TEXT,
-          "lynx",
-          "lynx %s" }
+        { "lynx",
+          "xterm -T \"Web Browser\" -e lynx %s &" }
     };
-    environment running;
     int i, status;
     char *command;
     char command_string[4*PATH_MAX];
-
-    /* Check for DISPLAY environment variable - assume X11 if exists */
-    if ( getenv("DISPLAY") ) {
-        running = RUNNING_X11;
-    } else {
-        running = RUNNING_TEXT;
-    }
 
     /* See what web browser is available */
     command = getenv("LOKI_BROWSER");
     if ( ! command || ! *command ) {
         for ( i=0; i<(sizeof browser_list)/(sizeof browser_list[0]); ++i ) {
-            if ( (running == browser_list[i].running) &&
-                 valid_program(browser_list[i].program) ) {
+            if ( valid_program(browser_list[i].program) ) {
                 command = browser_list[i].command;
                 break;
             }
