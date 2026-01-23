@@ -3,7 +3,7 @@ TARGET  := demo_config
 
 OBJS    := demo_config$(GTK).o
 
-CFLAGS = -g -O2 -Wall
+CFLAGS  ?= -g -O2 -Wall
 ARCH    := $(shell sh ../print_arch)
 LIBC    := $(shell sh ../print_libc)
 ifeq ($(ARCH), alpha)
@@ -24,6 +24,7 @@ LFLAGS += -L/usr/X11R6/lib -lXi -lXext -lX11 -lm -ldl
 else
 CFLAGS += $(shell pkg-config gtk4 --cflags)
 LFLAGS += $(shell pkg-config gtk4 --libs)
+LFLAGS += $(LDFLAGS)
 endif
 
 INSTALL := $(CDBASE)/bin/$(ARCH)/$(LIBC)/$(TARGET)
