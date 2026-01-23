@@ -68,6 +68,24 @@ static int valid_program(const char *program)
     return found;
 }
 
+/* Replaces the string 'find' with the string 'replace' */
+static const char *replace_str(const char *str, const char *find, const char *replace)
+{
+  static char buffer[4096];
+  char *p;
+
+  if(!(p = strstr(str, find)))  // Is 'find' even in 'str'?
+    return str;
+
+  strncpy(buffer, str, p-str); // Copy characters from 'str' start to 'find' st$
+  buffer[p-str] = '\0';
+
+  sprintf(buffer+(p-str), "%s%s", replace, p+strlen(find));
+
+  return buffer;
+}
+
+
 /* This function launches the user's web browser with the given URL.
    The browser detection can be overridden by the LOKI_BROWSER environment
    variable, which is used as the format string: %s is replaced with the
@@ -78,8 +96,13 @@ static int valid_program(const char *program)
 
    WARNING: This function should NOT be called when a video mode is set.
  */
-int loki_launchURL(const char *url)
+int loki_launchURL(const char *orig_url)
 {
+    /* Original website is broken, replace it with a copy that isn't */
+    const char *url = replace_str(orig_url,
+        "http://www.lokigames.com",
+        "https://www.lokigames.twolife.be");
+
     /* List of programs and command strings to try */
     struct {
         char *program;

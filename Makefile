@@ -1,6 +1,6 @@
 
 TARGET  := loki_demos
-VERSION := \"1.0e\"
+VERSION := \"1.0f\"
 OBJS	:= loki_demos.o loki_launch.o
 CFLAGS  ?= -g -Wall
 CFLAGS  += -DVERSION=$(VERSION)
