@@ -1,7 +1,7 @@
 
 TARGET  := loki_demos
 VERSION := \"1.0e\"
-OBJS	:= loki_demos.o loki_launch.o
+OBJS	:= loki_demos.o loki_launch.o play_movie_plm.o
 CFLAGS  ?= -g -Wall
 CFLAGS  += -DVERSION=$(VERSION)
 CFLAGS  += $(shell pkg-config sdl3 sdl3-image --cflags)

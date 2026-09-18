@@ -27,5 +27,3 @@
    WARNING: This function should NOT be called when a video mode is set.
  */
 extern int loki_launchURL(const char *url);
-
-extern void play_movie(const char *movie);

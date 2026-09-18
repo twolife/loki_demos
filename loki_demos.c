@@ -34,7 +34,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 #include "loki_launch.h"
-
+#include "play_movie_plm.h"
 
 #define PRODUCT     "Loki_Demos"
 #define LOGO_URL    "http://www.lokigames.com/"
